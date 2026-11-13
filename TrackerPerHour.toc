@@ -12,6 +12,7 @@ Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua
 Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua
 
 Session.lua
+Format.lua
 Core.lua
 Frame.lua
 Window.lua

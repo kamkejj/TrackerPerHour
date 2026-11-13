@@ -6,7 +6,7 @@ ns.Config = Config
 -- An option is { key, label } for an on/off setting.
 local SECTIONS = {
   { "Tracker rows", {
-    { "showGoldNet", "Show gold net row" },
+    { "showGoldNet", "Show gold (rolling) row" },
     { "showGoldGross", "Show gold gross row" },
     { "showKills", "Show kills row" },
     { "showXP", "Show XP row" },
@@ -29,24 +29,10 @@ local PAD = 10
 local HEADING_HEIGHT, ROW_HEIGHT, SECTION_GAP, INDENT = 20, 26, 10, 8
 local DROPDOWN_WIDTH, DROPDOWN_HEIGHT = 190, 24
 
-local frame = CreateFrame("Frame", "TrackerPerHourConfig", UIParent)
-frame:SetSize(300, 100)
-frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-frame:SetFrameStrata("DIALOG")
-frame:SetToplevel(true)
-frame:SetClampedToScreen(true)
-frame:SetMovable(true)
-frame:EnableMouse(true)
-frame:RegisterForDrag("LeftButton")
-frame:SetScript("OnDragStart", frame.StartMoving)
-frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-frame:Hide()
--- Escape closes any frame named in this list.
-UISpecialFrames[#UISpecialFrames + 1] = "TrackerPerHourConfig"
+local frame
 
--- Builds the options on a new skin. skin.draw() ticks the boxes and sizes the window to fit.
-local function build(styleName)
-  local skin = ns.newSkin(frame, styleName, ADDON .. " settings", function() frame:Hide() end)
+-- Adds the options to a new skin. skin.draw() ticks the boxes and sizes the window to fit.
+local function build(skin)
   local style, panel = skin.style, skin.panel
   panel:SetPoint("BOTTOMLEFT", skin, "BOTTOMLEFT", style.panelMargin, style.panelMargin)
   local left = style.panelMargin + PAD
@@ -114,15 +100,17 @@ local function build(styleName)
     styleDropdown:SetDefaultText(STYLE_LABELS[ns.db.settings.style])
     frame:SetSize(style.configWidth, height)
   end
-
-  return skin
 end
+
+frame = ns.newWindow("TrackerPerHourConfig", ADDON .. " settings", build)
+frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+frame:SetFrameStrata("DIALOG")
+frame:SetToplevel(true)
+-- Escape closes any frame named in this list.
+UISpecialFrames[#UISpecialFrames + 1] = "TrackerPerHourConfig"
 
 function Config.toggle()
   frame:SetShown(not frame:IsShown())
 end
 
-local skins = {}
-table.insert(ns.listeners, function()
-  ns.activeSkin(skins, build).draw()
-end)
+table.insert(ns.listeners, frame.refresh)

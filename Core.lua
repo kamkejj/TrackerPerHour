@@ -1,6 +1,6 @@
 -- Game events, saved variables and slash commands. addons/tests/test_trackerperhour.py drives this through a stub.
 local ADDON, ns = ...
-local Session = ns.Session
+local Session, Format = ns.Session, ns.Format
 
 local DEFAULT_SETTINGS = {
   showMinimap = true, locked = false,
@@ -46,7 +46,7 @@ end
 
 function ns.lines()
   local settings = ns.db.settings
-  return Session.lines(ns.db.session, GetTime(), {
+  return Format.lines(ns.db.session, GetTime(), {
     goldNet = settings.showGoldNet, goldGross = settings.showGoldGross,
     kills = settings.showKills, xp = settings.showXP,
     xpNow = UnitXP("player"), xpMax = UnitXPMax("player"), level = UnitLevel("player"),
@@ -87,7 +87,7 @@ function events.PLAYER_ENTERING_WORLD(isInitialLogin)
 end
 
 function events.PLAYER_MONEY()
-  Session.money(ns.db.session, GetMoney())
+  Session.money(ns.db.session, GetMoney(), GetTime())
 end
 
 function events.PLAYER_XP_UPDATE()

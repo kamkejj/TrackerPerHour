@@ -1,24 +1,16 @@
 -- The tracker window: a clock, one row per tracked thing, and the session buttons.
 local ADDON, ns = ...
-local Session = ns.Session
+local Session, Format = ns.Session, ns.Format
 local Window = {}
 ns.Window = Window
 
 local ROW_PAD, RATE_COLUMN = 8, 90
 local BUTTON_HEIGHT, BUTTON_GAP = 22, 8
-local MAX_ROWS = 5
 local REDRAW_SECONDS = 0.25
 local RUNNING_COLOR, STOPPED_COLOR = { 0.25, 1, 0.25 }, { 0.6, 0.6, 0.6 }
 local RESET_POPUP = "TRACKERPERHOUR_RESET"
 
-local frame = CreateFrame("Frame", "TrackerPerHourWindow", UIParent)
-frame:SetSize(360, 100)
-frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
-frame:SetClampedToScreen(true)
-frame:SetMovable(true)
-frame:EnableMouse(true)
-frame:RegisterForDrag("LeftButton")
-frame:Hide()
+local frame
 
 local function setShown(shown)
   ns.db.window.shown = shown
@@ -32,9 +24,8 @@ StaticPopupDialogs[RESET_POPUP] = {
   timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
 }
 
--- Builds the tracker's content on a new skin. skin.draw() fills it in and sizes the window to fit.
-local function build(styleName)
-  local skin = ns.newSkin(frame, styleName, ADDON, function() setShown(false) end)
+-- Adds the tracker's content to a new skin. skin.draw() fills it in and sizes the window to fit.
+local function build(skin)
   local style, panel = skin.style, skin.panel
 
   local clock = skin:CreateFontString(nil, "ARTWORK", style.clockFont)
@@ -48,18 +39,21 @@ local function build(styleName)
     return fontString
   end
 
+  -- One row per line, made the first time that many lines are shown.
   local rows = {}
-  for i = 1, MAX_ROWS do
+  local function row(i)
+    if rows[i] then return rows[i] end
     local y = -(ROW_PAD + (i - 1) * style.rowHeight)
-    local row = {
+    local r = {
       label = rowText(style.labelFont, "LEFT"),
       rate = rowText(style.rateFont, "LEFT"),
       total = rowText(style.totalFont, "RIGHT"),
     }
-    row.label:SetPoint("TOPLEFT", panel, "TOPLEFT", ROW_PAD, y)
-    row.rate:SetPoint("TOPLEFT", panel, "TOPLEFT", ROW_PAD + RATE_COLUMN, y)
-    row.total:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -ROW_PAD, y)
-    rows[i] = row
+    r.label:SetPoint("TOPLEFT", panel, "TOPLEFT", ROW_PAD, y)
+    r.rate:SetPoint("TOPLEFT", panel, "TOPLEFT", ROW_PAD + RATE_COLUMN, y)
+    r.total:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -ROW_PAD, y)
+    rows[i] = r
+    return r
   end
 
   local function button(label, width, onClick)
@@ -81,17 +75,17 @@ local function build(styleName)
 
   function skin.draw()
     local session = ns.db.session
-    clock:SetText(Session.clock(Session.seconds(session, GetTime())))
+    clock:SetText(Format.clock(Session.seconds(session, GetTime())))
     state:SetText(session.running and "running" or "stopped")
     state:SetTextColor(unpack(session.running and RUNNING_COLOR or STOPPED_COLOR))
     startStop:SetText(session.running and "Stop" or "Start")
 
     local lines = ns.lines()
-    for i, row in ipairs(rows) do
-      local line = lines[i]
-      row.label:SetText(line and line[1] or "")
-      row.rate:SetText(line and line[2] or "")
-      row.total:SetText(line and "(" .. line[3] .. ")" or "")
+    for i = 1, math.max(#lines, #rows) do
+      local line, r = lines[i], row(i)
+      r.label:SetText(line and line[1] or "")
+      r.rate:SetText(line and line[2] or "")
+      r.total:SetText(line and "(" .. line[3] .. ")" or "")
     end
     -- With every row switched off there is nothing to put in the panel, so it goes too.
     local panelHeight = #lines > 0 and ROW_PAD * 2 + #lines * style.rowHeight or 0
@@ -99,14 +93,10 @@ local function build(styleName)
     panel:SetHeight(math.max(panelHeight, 1))
     frame:SetSize(style.trackerWidth, style.headerHeight + panelHeight + BUTTON_GAP + BUTTON_HEIGHT + style.edge)
   end
-
-  return skin
 end
 
-local skins = {}
-local function draw()
-  ns.activeSkin(skins, build).draw()
-end
+frame = ns.newWindow("TrackerPerHourWindow", ADDON, build, function() setShown(false) end)
+frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 
 function Window.toggle()
   setShown(not ns.db.window.shown)
@@ -118,7 +108,7 @@ end
 
 table.insert(ns.listeners, function()
   frame:SetShown(ns.db.window.shown)
-  draw()
+  frame.refresh()
 end)
 
 local sinceDraw = 0
@@ -126,7 +116,7 @@ frame:SetScript("OnUpdate", function(_, elapsed)
   sinceDraw = sinceDraw + elapsed
   if sinceDraw < REDRAW_SECONDS then return end
   sinceDraw = 0
-  draw()
+  frame.refresh()
 end)
 
 frame:SetScript("OnDragStart", function(self)

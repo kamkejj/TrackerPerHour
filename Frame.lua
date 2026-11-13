@@ -1,5 +1,5 @@
--- The two looks a window can have, chosen by ns.db.settings.style. A window is a plain frame; a skin
--- is a child that fills it and draws the look. Each skin is built the first time its style is used.
+-- The addon's windows and the two looks they can have, chosen by ns.db.settings.style. A window is a
+-- plain frame; a skin is a child that fills it and draws the look.
 local _, ns = ...
 
 ns.ICON = "Interface\\Icons\\INV_Misc_PocketWatch_01"
@@ -56,8 +56,7 @@ end
 
 -- Returns the skin: a frame with .style (its ns.STYLES entry) and .panel (the frame to put content
 -- on, anchored under the header; the caller sets its height or bottom edge).
--- onClose runs when the corner close button is clicked.
-function ns.newSkin(window, styleName, title, onClose)
+local function newSkin(window, styleName, title, onClose)
   local skin = (styleName == "classic" and classicSkin or minimalSkin)(window, title)
   local style = ns.STYLES[styleName]
   skin.style = style
@@ -74,11 +73,31 @@ function ns.newSkin(window, styleName, title, onClose)
   return skin
 end
 
--- Shows the skin for the current style, building it with build(styleName) on first use, and hides
--- the others. skins is the caller's table of the ones built so far.
-function ns.activeSkin(skins, build)
-  local styleName = ns.db.settings.style
-  skins[styleName] = skins[styleName] or build(styleName)
-  for name, skin in pairs(skins) do skin:SetShown(name == styleName) end
-  return skins[styleName]
+-- Returns a hidden, movable, top-level window whose look follows ns.db.settings.style.
+--   build(skin): adds the window's content to a new skin and sets skin.draw(), which fills the
+--                content in and sizes the window to fit. Each skin is built the first time it is used.
+--   onClose:     runs when the corner close button is clicked; hides the window if left out.
+-- window.refresh() draws the window in the current style, shown or not, so it is up to date when opened.
+function ns.newWindow(name, title, build, onClose)
+  local window = CreateFrame("Frame", name, UIParent)
+  window:SetClampedToScreen(true)
+  window:SetMovable(true)
+  window:EnableMouse(true)
+  window:RegisterForDrag("LeftButton")
+  window:SetScript("OnDragStart", window.StartMoving)
+  window:SetScript("OnDragStop", window.StopMovingOrSizing)
+  window:Hide()
+  onClose = onClose or function() window:Hide() end
+
+  local skins = {}
+  function window.refresh()
+    local styleName = ns.db.settings.style
+    if not skins[styleName] then
+      skins[styleName] = newSkin(window, styleName, title, onClose)
+      build(skins[styleName])
+    end
+    for skinName, skin in pairs(skins) do skin:SetShown(skinName == styleName) end
+    skins[styleName].draw()
+  end
+  return window
 end
