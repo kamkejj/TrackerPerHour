@@ -52,19 +52,22 @@ function Format.lines(s, now, view)
   local lines = {}
   local function coin(copper) return Format.coin(copper, view.coinUnits) end
   if view.goldNet then
-    lines[#lines + 1] = { "Gold (rolling)", rateText(Session.rollingPerHour(s, now), coin), coin(s.gained - s.spent) }
+    lines[#lines + 1] = { "Gold (rolling)", rateText(Session.rollingPerHour(s, s.recentMoney, now), coin),
+      coin(s.gained - s.spent) .. " /net" }
   end
   if view.goldGross then
-    lines[#lines + 1] = { "Gold gross", perHourText(s, s.gained, now, coin), coin(s.gained) }
+    -- All coin gained this session, not a rate, so the last column says so instead of repeating it.
+    lines[#lines + 1] = { "Gold gross", coin(s.gained), "session" }
   end
   if view.kills then
     lines[#lines + 1] = { "Kills", perHourText(s, s.kills, now, Format.count), tostring(s.kills) }
   end
   if view.xp and view.xpOff then
-    lines[#lines + 1] = { "XP", NO_VALUE, NO_VALUE }
+    lines[#lines + 1] = { "XP (rolling)", NO_VALUE, NO_VALUE }
   elseif view.xp then
-    local text, rate = perHourText(s, s.xp, now, Format.count)
-    lines[#lines + 1] = { "XP", text, Format.count(s.xp) }
+    -- The time to level runs on the rolling rate too, so it follows the current pace.
+    local text, rate = rateText(Session.rollingPerHour(s, s.recentXP, now), Format.count)
+    lines[#lines + 1] = { "XP (rolling)", text, Format.count(s.xp) }
     local needed = view.xpMax - view.xpNow
     local eta = rate and rate > 0 and Format.duration(needed / rate * 3600) or NO_VALUE
     lines[#lines + 1] = { "To level " .. (view.level + 1), Format.count(needed) .. " XP", eta }

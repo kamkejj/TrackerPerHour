@@ -91,7 +91,7 @@ function events.PLAYER_MONEY()
 end
 
 function events.PLAYER_XP_UPDATE()
-  Session.xp(ns.db.session, UnitXP("player"), UnitXPMax("player"))
+  Session.xp(ns.db.session, UnitXP("player"), UnitXPMax("player"), GetTime())
 end
 
 function events.PARTY_KILL(attackerGUID)

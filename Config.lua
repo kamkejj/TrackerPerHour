@@ -9,7 +9,7 @@ local SECTIONS = {
     { "showGoldNet", "Show gold (rolling) row" },
     { "showGoldGross", "Show gold gross row" },
     { "showKills", "Show kills row" },
-    { "showXP", "Show XP row" },
+    { "showXP", "Show XP (rolling) row" },
   } },
   { "Session", {
     { "countPet", "Count pet kills as mine" },
