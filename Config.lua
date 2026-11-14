@@ -1,5 +1,5 @@
 -- The settings window: sections of options, each stored in ns.db.settings.
-local ADDON, ns = ...
+local _, ns = ...
 local Config = {}
 ns.Config = Config
 
@@ -102,7 +102,7 @@ local function build(skin)
   end
 end
 
-frame = ns.newWindow("TrackerPerHourConfig", ADDON .. " settings", build)
+frame = ns.newWindow("TrackerPerHourConfig", ns.TITLE .. " settings", build)
 frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 frame:SetFrameStrata("DIALOG")
 frame:SetToplevel(true)

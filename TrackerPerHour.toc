@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: TrackerPerHour
+## Title: Tracker Per Hour
 ## Notes: Gold, kills and experience per hour for a session you start and stop. /tph
 ## Author: Jon
 ## Version: 0.5.0

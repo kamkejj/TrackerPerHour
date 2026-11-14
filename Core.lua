@@ -2,6 +2,9 @@
 local ADDON, ns = ...
 local Session, Format = ns.Session, ns.Format
 
+-- The name players see. ADDON, the folder name, stays the name the game and the minimap library know it by.
+ns.TITLE = "Tracker Per Hour"
+
 local DEFAULT_SETTINGS = {
   showMinimap = true, locked = false,
   showGoldNet = true, showGoldGross = true, showKills = true, showXP = true,

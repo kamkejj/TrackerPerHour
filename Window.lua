@@ -1,5 +1,5 @@
 -- The tracker window: a clock, one row per tracked thing, and the session buttons.
-local ADDON, ns = ...
+local _, ns = ...
 local Session, Format = ns.Session, ns.Format
 local Window = {}
 ns.Window = Window
@@ -18,7 +18,7 @@ local function setShown(shown)
 end
 
 StaticPopupDialogs[RESET_POPUP] = {
-  text = "Reset the TrackerPerHour session? This clears the clock and all totals.",
+  text = "Reset the Tracker Per Hour session? This clears the clock and all totals.",
   button1 = YES, button2 = NO,
   OnAccept = function() ns.reset() end,
   timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
@@ -95,7 +95,7 @@ local function build(skin)
   end
 end
 
-frame = ns.newWindow("TrackerPerHourWindow", ADDON, build, function() setShown(false) end)
+frame = ns.newWindow("TrackerPerHourWindow", ns.TITLE, build, function() setShown(false) end)
 frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 
 function Window.toggle()
