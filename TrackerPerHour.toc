@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Tracker Per Hour
 ## Notes: Gold, kills and experience per hour for a session you start and stop. /tph
-## Author: Jon
+## Author: Otton
 ## Version: 0.5.0
 ## IconTexture: Interface\Icons\INV_Misc_PocketWatch_01
 ## SavedVariablesPerCharacter: TrackerPerHourDB
