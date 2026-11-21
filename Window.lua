@@ -7,6 +7,7 @@ ns.Window = Window
 local ROW_PAD, RATE_COLUMN = 8, 90
 local BUTTON_HEIGHT, BUTTON_GAP = 22, 8
 local REDRAW_SECONDS = 0.25
+local GRIP_SIZE = 16
 local RUNNING_COLOR, STOPPED_COLOR = { 0.25, 1, 0.25 }, { 0.6, 0.6, 0.6 }
 local RESET_POPUP = "TRACKERPERHOUR_RESET"
 
@@ -23,6 +24,22 @@ StaticPopupDialogs[RESET_POPUP] = {
   OnAccept = function() ns.reset() end,
   timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
 }
+
+-- True while the player is dragging the resize grip, so redraws leave the size alone.
+local sizing = false
+
+-- Sets the smallest size the window may take and grows the window to it if needed. The player can
+-- make the window bigger than its content with the grip; the size they chose is kept in ns.db.window.size.
+local function fitSize(minWidth, minHeight)
+  if frame.SetResizeBounds then
+    frame:SetResizeBounds(minWidth, minHeight)
+  else
+    frame:SetMinResize(minWidth, minHeight)
+  end
+  if sizing then return end
+  local saved = ns.db.window.size
+  frame:SetSize(math.max(minWidth, saved and saved[1] or 0), math.max(minHeight, saved and saved[2] or 0))
+end
 
 -- Adds the tracker's content to a new skin. skin.draw() fills it in and sizes the window to fit.
 local function build(skin)
@@ -71,7 +88,11 @@ local function build(skin)
   local reset = button("Reset", 76, function() StaticPopup_Show(RESET_POPUP) end)
   reset:SetPoint("LEFT", startStop, "RIGHT", 6, 0)
   local settings = button("Settings", 86, function() ns.Config.toggle() end)
-  settings:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -style.edge, style.edge)
+  -- Leaves the bottom-right corner free for the resize grip.
+  settings:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -(style.edge + GRIP_SIZE / 2), style.edge)
+
+  -- The panel stretches down to the buttons, so a taller window gives it the extra room.
+  panel:SetPoint("BOTTOM", skin, "BOTTOM", 0, style.edge + BUTTON_HEIGHT + BUTTON_GAP)
 
   function skin.draw()
     local session = ns.db.session
@@ -90,13 +111,40 @@ local function build(skin)
     -- With every row switched off there is nothing to put in the panel, so it goes too.
     local panelHeight = #lines > 0 and ROW_PAD * 2 + #lines * style.rowHeight or 0
     panel:SetShown(#lines > 0)
-    panel:SetHeight(math.max(panelHeight, 1))
-    frame:SetSize(style.trackerWidth, style.headerHeight + panelHeight + BUTTON_GAP + BUTTON_HEIGHT + style.edge)
+    fitSize(style.trackerWidth, style.headerHeight + panelHeight + BUTTON_GAP + BUTTON_HEIGHT + style.edge)
   end
 end
 
 frame = ns.newWindow("TrackerPerHourWindow", ns.TITLE, build, function() setShown(false) end)
 frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
+frame:SetResizable(true)
+
+local function savePosition()
+  local point, _, relativePoint, x, y = frame:GetPoint()
+  ns.db.window.position = { point, relativePoint, x, y }
+end
+
+-- Drag the bottom-right corner to resize. It sits above every skin and hides while the window is locked.
+local grip = CreateFrame("Button", nil, frame)
+grip:SetSize(GRIP_SIZE, GRIP_SIZE)
+grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+grip:SetFrameLevel(frame:GetFrameLevel() + 20)
+grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+grip:SetScript("OnMouseDown", function(_, mouseButton)
+  if mouseButton ~= "LeftButton" or ns.db.settings.locked then return end
+  sizing = true
+  frame:StartSizing("BOTTOMRIGHT")
+end)
+grip:SetScript("OnMouseUp", function()
+  if not sizing then return end
+  frame:StopMovingOrSizing()
+  sizing = false
+  ns.db.window.size = { frame:GetWidth(), frame:GetHeight() }
+  -- Sizing can re-anchor the window, so its position is saved again too.
+  savePosition()
+end)
 
 function Window.toggle()
   setShown(not ns.db.window.shown)
@@ -108,6 +156,7 @@ end
 
 table.insert(ns.listeners, function()
   frame:SetShown(ns.db.window.shown)
+  grip:SetShown(not ns.db.settings.locked)
   frame.refresh()
 end)
 
@@ -125,8 +174,7 @@ end)
 
 frame:SetScript("OnDragStop", function(self)
   self:StopMovingOrSizing()
-  local point, _, relativePoint, x, y = self:GetPoint()
-  ns.db.window.position = { point, relativePoint, x, y }
+  savePosition()
 end)
 
 frame:RegisterEvent("PLAYER_LOGIN")

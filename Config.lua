@@ -16,7 +16,7 @@ local SECTIONS = {
     { "autoStart", "Start a session on login" },
   } },
   { "Window", {
-    { "locked", "Lock tracker window position" },
+    { "locked", "Lock tracker window position and size" },
     { "showMinimap", "Show minimap button" },
   } },
 }
