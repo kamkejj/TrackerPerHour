@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0-beta
+
+- The tracker window is resizable: drag the grip in its bottom-right corner to make it larger. The size is saved per character.
+- Locking the tracker window now locks its size as well as its position.
+- Added a README.
+
 ## 0.5.0
 
 First public release.
